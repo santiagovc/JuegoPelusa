@@ -91,6 +91,28 @@ public class GameController {
     }
 
     /**
+     * Paso 3 Manual: Robar cartas del mismo valor a un rival.
+     * POST /api/games/{id}/steal
+     */
+    @PostMapping("/{id}/steal")
+    public ResponseEntity<GameResponseDto> stealCards(
+            @PathVariable String id,
+            @RequestBody(required = false) Map<String, Object> payload) {
+        String victimPlayerId = null;
+        Integer cardValue = null;
+        if (payload != null) {
+            if (payload.get("victimPlayerId") != null) {
+                victimPlayerId = payload.get("victimPlayerId").toString();
+            }
+            if (payload.get("cardValue") != null) {
+                cardValue = Integer.valueOf(payload.get("cardValue").toString());
+            }
+        }
+        GameResponseDto game = gameService.executeSteal(id, victimPlayerId, cardValue);
+        return ResponseEntity.ok(game);
+    }
+
+    /**
      * 7. Consultar el resultado de la partida.
      * GET /api/games/{id}/result
      */

@@ -67,7 +67,8 @@ public class GameService {
             deck.shuffle();
         }
 
-        Game game = new Game(gameId, request.getPlayerNames(), deck, turnRules);
+        boolean autoSteal = request.getAutoSteal() != null ? request.getAutoSteal() : true;
+        Game game = new Game(gameId, request.getPlayerNames(), deck, turnRules, autoSteal);
         activeGames.put(gameId, game);
 
         persistActiveGame(game);
@@ -139,6 +140,29 @@ public class GameService {
         return mapToDto(game);
     }
 
+    @Transactional
+    public GameResponseDto executeSteal(String gameId, String victimPlayerId, Integer cardValue) {
+        Game game = findGameOrThrow(gameId);
+        if (victimPlayerId == null || cardValue == null) {
+            // Si no se especifica, robar el primer robo pendiente disponible
+            if (game.getPendingSteals() != null && !game.getPendingSteals().isEmpty()) {
+                StealResult first = game.getPendingSteals().get(0);
+                victimPlayerId = first.getVictimPlayerId();
+                cardValue = first.getCardValue();
+            } else {
+                throw new InvalidGameActionException("No hay cartas pendientes para robar a los rivales");
+            }
+        }
+        try {
+            game.executeManualSteal(victimPlayerId, cardValue);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            throw new InvalidGameActionException(e.getMessage());
+        }
+
+        persistActiveGame(game);
+        return mapToDto(game);
+    }
+
     /**
      * Permite reiniciar o configurar una partida con estado específico (útil para pruebas).
      */
@@ -179,6 +203,14 @@ public class GameService {
         dto.setRemainingDeckCards(game.getDeck().remainingCardsCount());
         dto.setDiscardPileCount(game.getDiscardPile().size());
         dto.setLastActionMessage(game.getLastActionMessage());
+        dto.setAutoSteal(game.isAutoSteal());
+
+        if (game.getPendingSteals() != null) {
+            List<StealResponseDto> pendingDtos = game.getPendingSteals().stream()
+                    .map(s -> new StealResponseDto(s.getVictimPlayerId(), s.getVictimPlayerName(), s.getCardValue(), s.getCount()))
+                    .collect(Collectors.toList());
+            dto.setPendingSteals(pendingDtos);
+        }
 
         if (game.getLastDrawnCard() != null) {
             dto.setLastDrawnCard(new CardDto(game.getLastDrawnCard().getValue()));

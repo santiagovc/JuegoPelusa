@@ -29,6 +29,8 @@ test.describe('Pruebas Funcionales Automatizadas - Juego de Mesa Pelusas', () =>
 
     // Verificar que la carta fue sacada y el mazo disminuyó en 1
     await expect(page.locator('[data-testid="deck-count"]')).toHaveText(`${initialCount - 1} cartas`);
+    await page.waitForTimeout(400);
+    await page.screenshot({ path: 'pelusas_drawn_card_screenshot.png', fullPage: true });
 
     // Verificar que el botón de plantarse está habilitado tras sacar carta
     const btnStop = page.locator('[data-testid="btn-stop"]');
@@ -119,6 +121,9 @@ test.describe('Pruebas Funcionales Automatizadas - Juego de Mesa Pelusas', () =>
 
     // Turno de Sofia: Saca un 7 -> Roba el 7 que Mateo tenía delante
     await page.click('[data-testid="btn-draw"]');
+
+    // Ejecutar el robo manual (el jugador activo decide robar)
+    await page.click('[data-testid="btn-steal-opportunity"]');
 
     // Verificar que Sofia ahora tiene 2 cartas (la sacada + la robada) y Mateo quedó con 0
     await expect(page.locator('#player-mat-player-2')).toContainText('2 cartas');

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Gamepad2, X, UserPlus, Trash2, GraduationCap } from 'lucide-react';
 
 export default function NewGameModal({ isOpen, onClose, onCreateGame }) {
   const [playerNames, setPlayerNames] = useState(['Fabian', 'Laura']);
@@ -56,35 +57,37 @@ export default function NewGameModal({ isOpen, onClose, onCreateGame }) {
     <div className="modal-overlay" data-testid="new-game-modal">
       <div className="modal-card">
         <div className="modal-header">
-          <h2 className="modal-title">🎮 Nueva Partida de Pelusas</h2>
-          <button className="btn-close" onClick={onClose} data-testid="btn-close-modal">✕</button>
+          <div className="modal-title-wrap">
+            <Gamepad2 size={20} className="modal-title-icon" />
+            <h2 className="modal-title">Nueva Partida de Pelusas</h2>
+          </div>
+          <button className="btn-modal-close" onClick={onClose} data-testid="btn-close-modal" aria-label="Cerrar modal">
+            <X size={18} />
+          </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="modal-form">
           {/* Presets rápidos */}
           <div className="form-group">
             <label className="form-label">Plantillas rápidas:</label>
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <div className="presets-pill-group">
               <button
                 type="button"
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                className="btn btn-preset-pill"
                 onClick={() => applyPreset(2)}
               >
                 2 Jugadores
               </button>
               <button
                 type="button"
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                className="btn btn-preset-pill"
                 onClick={() => applyPreset(3)}
               >
                 3 Jugadores
               </button>
               <button
                 type="button"
-                className="btn btn-secondary"
-                style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                className="btn btn-preset-pill"
                 onClick={() => applyPreset(4)}
               >
                 4 Jugadores
@@ -94,70 +97,74 @@ export default function NewGameModal({ isOpen, onClose, onCreateGame }) {
 
           {/* Lista de nombres */}
           <div className="form-group">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <label className="form-label" style={{ margin: 0 }}>
+            <div className="form-header-row">
+              <label className="form-label">
                 Nombres de Jugadores ({playerNames.length} / 6):
               </label>
               {playerNames.length < 6 && (
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}
+                  className="btn btn-secondary btn-add-player"
                   onClick={addPlayer}
                 >
-                  + Agregar Jugador
+                  <UserPlus size={14} />
+                  <span>Agregar Jugador</span>
                 </button>
               )}
             </div>
 
-            {playerNames.map((name, index) => (
-              <div key={index} className="player-input-row">
-                <input
-                  type="text"
-                  className="form-input"
-                  id={`player-input-${index}`}
-                  data-testid={`player-input-${index}`}
-                  value={name}
-                  onChange={(e) => handleNameChange(index, e.target.value)}
-                  placeholder={`Jugador ${index + 1}`}
-                  required
-                />
-                {playerNames.length > 2 && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    style={{ padding: '0.5rem 0.8rem', color: '#ef4444' }}
-                    onClick={() => removePlayer(index)}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+            <div className="player-inputs-list">
+              {playerNames.map((name, index) => (
+                <div key={index} className="player-input-row">
+                  <input
+                    type="text"
+                    className="form-input"
+                    id={`player-input-${index}`}
+                    data-testid={`player-input-${index}`}
+                    value={name}
+                    onChange={(e) => handleNameChange(index, e.target.value)}
+                    placeholder={`Jugador ${index + 1}`}
+                    required
+                  />
+                  {playerNames.length > 2 && (
+                    <button
+                      type="button"
+                      className="btn-remove-player"
+                      onClick={() => removePlayer(index)}
+                      title="Quitar jugador"
+                      aria-label="Quitar jugador"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Modo Demostración para sustentación */}
-          <div className="form-group" style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+          <div className="form-group simulation-group-box">
+            <div className="simulation-checkbox-row">
               <input
                 type="checkbox"
                 id="toggle-simulation"
                 data-testid="toggle-simulation"
                 checked={isSimulationMode}
                 onChange={(e) => setIsSimulationMode(e.target.checked)}
-                style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                className="form-checkbox"
               />
-              <label htmlFor="toggle-simulation" style={{ fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>
-                🎓 Modo Sustentación (Controlar Mazo)
+              <label htmlFor="toggle-simulation" className="simulation-checkbox-label">
+                <GraduationCap size={16} className="cap-icon" />
+                <span>Modo Sustentación (Controlar Mazo)</span>
               </label>
             </div>
             {isSimulationMode && (
-              <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                  Selecciona una secuencia predefinida para demostrar una regla al profesor:
+              <div className="simulation-select-wrap">
+                <span className="simulation-hint-text">
+                  Selecciona una secuencia predefinida para demostrar una regla:
                 </span>
                 <select
-                  className="form-input"
+                  className="form-input form-select"
                   data-testid="select-preset"
                   value={simulationDeckPreset}
                   onChange={(e) => setSimulationDeckPreset(e.target.value)}
@@ -170,7 +177,7 @@ export default function NewGameModal({ isOpen, onClose, onCreateGame }) {
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
+          <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Cancelar
             </button>
@@ -188,3 +195,4 @@ export default function NewGameModal({ isOpen, onClose, onCreateGame }) {
     </div>
   );
 }
+

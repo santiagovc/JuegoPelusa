@@ -16,6 +16,12 @@ public class CreateGameRequest {
      */
     private List<Integer> riggedDeckValues;
 
+    /**
+     * Opcional: si es false, los robos a rivales deben ser ejecutados manualmente por el jugador.
+     * Por defecto es true para compatibilidad hacia atrás con tests automáticos existentes.
+     */
+    private Boolean autoSteal;
+
     public CreateGameRequest() {
     }
 
@@ -42,5 +48,13 @@ public class CreateGameRequest {
 
     public void setRiggedDeckValues(List<Integer> riggedDeckValues) {
         this.riggedDeckValues = riggedDeckValues;
+    }
+
+    public Boolean getAutoSteal() {
+        return autoSteal;
+    }
+
+    public void setAutoSteal(Boolean autoSteal) {
+        this.autoSteal = autoSteal;
     }
 }

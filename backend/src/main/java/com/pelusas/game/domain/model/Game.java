@@ -34,12 +34,19 @@ public class Game implements Serializable {
     private List<StealResult> lastSteals;
     private String lastActionMessage;
     private List<Player> winners;
+    private boolean autoSteal = true;
+    private List<StealResult> pendingSteals = new ArrayList<>();
 
     /**
      * Constructor para iniciar una partida nueva con nombres de jugadores.
      */
     public Game(List<String> playerNames) {
         this(UUID.randomUUID().toString(), playerNames, new Deck(), new TurnRules());
+    }
+
+    public Game(String id, List<String> playerNames, Deck deck, TurnRules rules, boolean autoSteal) {
+        this(id, playerNames, deck, rules);
+        this.autoSteal = autoSteal;
     }
 
     /**
@@ -121,9 +128,23 @@ public class Game implements Serializable {
         // Verificar si ya tenía este valor delante antes del robo
         boolean hadRepeatedValue = activePlayer.hasCardInFrontWithValue(drawnCard.getValue());
 
-        // Paso 3: Robar cartas del mismo valor a los rivales
-        List<StealResult> steals = rules.executeSteals(activePlayer, players, drawnCard);
-        this.lastSteals = steals;
+        List<StealResult> steals = new ArrayList<>();
+        this.pendingSteals = new ArrayList<>();
+
+        if (autoSteal) {
+            // Paso 3: Robar cartas del mismo valor a los rivales automáticamente
+            steals = rules.executeSteals(activePlayer, players, drawnCard);
+            this.lastSteals = steals;
+        } else {
+            // Paso 3 manual: verificar qué rivales tienen cartas de este valor
+            for (Player rival : players) {
+                if (!rival.getId().equals(activePlayer.getId()) && rival.hasCardInFrontWithValue(drawnCard.getValue())) {
+                    long count = rival.getCardsInFront().stream().filter(c -> c.getValue() == drawnCard.getValue()).count();
+                    this.pendingSteals.add(new StealResult(rival.getId(), rival.getName(), drawnCard.getValue(), (int) count));
+                }
+            }
+            this.lastSteals = Collections.emptyList();
+        }
 
         // Colocar la carta sacada delante del jugador
         activePlayer.addCardInFront(drawnCard);
@@ -132,6 +153,9 @@ public class Game implements Serializable {
         boolean busted = rules.checkBust(hadRepeatedValue, activePlayer.countCardsInFront());
 
         if (busted) {
+            if (this.pendingSteals != null) {
+                this.pendingSteals.clear();
+            }
             List<Card> lostCards = activePlayer.clearCardsInFront();
             discardPile.addAll(lostCards);
             this.lastActionMessage = "¡Pérdida de turno! " + activePlayer.getName() +
@@ -154,6 +178,8 @@ public class Game implements Serializable {
                 for (StealResult steal : steals) {
                     sb.append(" Robó ").append(steal.getCount()).append(" carta(s) a ").append(steal.getVictimPlayerName()).append(".");
                 }
+            } else if (!pendingSteals.isEmpty()) {
+                sb.append(" ¡Hay cartas del mismo valor en rivales disponibles para robar!");
             }
             this.lastActionMessage = sb.toString();
 
@@ -164,6 +190,47 @@ public class Game implements Serializable {
 
             return new DrawExecutionResult(drawnCard, steals, false, List.of());
         }
+    }
+
+    /**
+     * Paso 3 manual — El jugador ejecuta expresamente el robo de cartas coincidentes a un rival.
+     */
+    public StealResult executeManualSteal(String victimPlayerId, int cardValue) {
+        if (status != GameStatus.IN_PROGRESS) {
+            throw new IllegalStateException("La partida no está en curso");
+        }
+        Player activePlayer = getActivePlayer();
+        Player victim = players.stream()
+                .filter(p -> p.getId().equals(victimPlayerId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Jugador rival no encontrado con id: " + victimPlayerId));
+
+        if (victim.getId().equals(activePlayer.getId())) {
+            throw new IllegalArgumentException("No puedes robarte a ti mismo");
+        }
+
+        List<Card> stolen = victim.removeCardsOfValueInFront(cardValue);
+        if (stolen.isEmpty()) {
+            throw new IllegalStateException(victim.getName() + " no tiene cartas de valor " + cardValue + " en riesgo");
+        }
+
+        activePlayer.addCardsInFront(stolen);
+
+        StealResult stealResult = new StealResult(victim.getId(), victim.getName(), cardValue, stolen.size());
+        if (this.lastSteals == null || this.lastSteals.isEmpty()) {
+            this.lastSteals = new ArrayList<>();
+        } else {
+            this.lastSteals = new ArrayList<>(this.lastSteals);
+        }
+        this.lastSteals.add(stealResult);
+
+        if (this.pendingSteals != null) {
+            this.pendingSteals.removeIf(s -> s.getVictimPlayerId().equals(victimPlayerId) && s.getCardValue() == cardValue);
+        }
+
+        this.lastActionMessage = activePlayer.getName() + " Robó " + stolen.size() +
+                " carta(s) a " + victim.getName() + ".";
+        return stealResult;
     }
 
     /**
@@ -192,6 +259,9 @@ public class Game implements Serializable {
         this.turnPhase = TurnPhase.START_OF_TURN;
         this.lastDrawnCard = null;
         this.lastSteals = Collections.emptyList();
+        if (this.pendingSteals != null) {
+            this.pendingSteals.clear();
+        }
     }
 
     /**
@@ -269,6 +339,18 @@ public class Game implements Serializable {
 
     public List<Player> getWinners() {
         return Collections.unmodifiableList(winners);
+    }
+
+    public boolean isAutoSteal() {
+        return autoSteal;
+    }
+
+    public void setAutoSteal(boolean autoSteal) {
+        this.autoSteal = autoSteal;
+    }
+
+    public List<StealResult> getPendingSteals() {
+        return pendingSteals != null ? Collections.unmodifiableList(pendingSteals) : Collections.emptyList();
     }
 
     /**

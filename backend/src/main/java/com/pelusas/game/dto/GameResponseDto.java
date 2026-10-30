@@ -22,6 +22,8 @@ public class GameResponseDto {
     private boolean canBank;
     private boolean canDraw;
     private boolean canStop;
+    private boolean autoSteal;
+    private List<StealResponseDto> pendingSteals;
 
     public GameResponseDto() {
     }
@@ -152,5 +154,21 @@ public class GameResponseDto {
 
     public void setCanStop(boolean canStop) {
         this.canStop = canStop;
+    }
+
+    public boolean isAutoSteal() {
+        return autoSteal;
+    }
+
+    public void setAutoSteal(boolean autoSteal) {
+        this.autoSteal = autoSteal;
+    }
+
+    public List<StealResponseDto> getPendingSteals() {
+        return pendingSteals;
+    }
+
+    public void setPendingSteals(List<StealResponseDto> pendingSteals) {
+        this.pendingSteals = pendingSteals;
     }
 }
